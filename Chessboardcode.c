@@ -286,7 +286,7 @@ void main (void)
       }
 
    printBoard(board, MAX_NODE);
-   for (int i=1; i < 10; i++){
+   for (int i=1; i < 15; i++){
       //selecting a piece
       char input[5];
 
