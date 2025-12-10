@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include <stdbool.h>
 #include <stdlib.h> // Required for malloc and free
-// change test tyler branch
+// change test tyler 2
 typedef struct{
    char pieceType;
    char color;
