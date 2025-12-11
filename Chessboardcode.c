@@ -7,6 +7,7 @@ typedef struct{
    char color;
    bool isonboard;
 }cell;
+
 // Helper to check if path is clear between from and to (excluding endpoints)
 bool isPathClear(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow, int tocol) {
     int rowStep = (torow - fromrow) == 0 ? 0 : (torow - fromrow) / abs(torow - fromrow);
@@ -133,8 +134,6 @@ void selectpiece(cell* board, char rowLetter, char colDigit, int MAX_NODE) {
                 printf(" %c%c ", c.color, c.pieceType);
                 return;
             }
-   
-
 }
 
 void printBoard(cell* board, int MAX_NODE){
@@ -152,11 +151,11 @@ void printBoard(cell* board, int MAX_NODE){
    }
 }
 
-void movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE) {
+bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE, char currentTurn) {
    if (fromRow < 'A' || fromRow > 'H' || fromCol < '1' || fromCol > '8' ||
       rowLetter < 'A' || rowLetter > 'H' || colDigit < '1' || colDigit > '8') {
       printf("Invalid input: Use rows A-H and columns 1-8.\n");
-      return;
+      return false;
    }
    int trow = rowLetter - 'A' + 1;  // Row 1 to 8
    int tcol = colDigit - '0';      // Col 1 to 8
@@ -164,38 +163,44 @@ void movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char col
    int row = fromRow - 'A' + 1;  // Row 1 to 8
    int col = fromCol - '0';      // Col 1 to 8
 
-
-
    int toIndex = trow * MAX_NODE + tcol;
    int fromIndex = row * MAX_NODE + col;
+   
    //check if there is a piece to move to
    if (board[fromIndex].pieceType == '\0') {
       printf("No piece at the selected position %c%c to move.\n", fromRow, fromCol);
-      return;
+      return false;
+   }
+
+   // Check if it's the right player's turn
+   if (board[fromIndex].color != currentTurn) {
+      printf("It's %s's turn! You can't move %s pieces.\n", 
+             currentTurn == 'W' ? "White" : "Black",
+             currentTurn == 'W' ? "Black" : "White");
+      return false;
    }
 
    if (!isvalidmove(board, MAX_NODE, row, col, trow, tcol)) {
       printf("Invalid move for piece %c%c from %c%c to %c%c.\n",
              board[fromIndex].color, board[fromIndex].pieceType, 
              fromRow, fromCol, rowLetter, colDigit);
-      return;
+      return false;
    }
+   
    board[toIndex] = board[fromIndex];
    board[fromIndex].pieceType = '\0';
    board[fromIndex].color = '\0';
 
    printf("Moved piece to %c%c: %c%c\n", rowLetter, colDigit, board[toIndex].color, board[toIndex].pieceType);
-   
-
+   return true;
 }
 
-
-
-
-void main (void)
- {
+int main (void)
+{
     int MAX_NODE = 9;
     cell* board = malloc(MAX_NODE * MAX_NODE * sizeof(cell));
+    char currentTurn = 'W'; // White goes first
+    
     //set board
     for (int i = 0; i < MAX_NODE; i++)
     {
@@ -286,28 +291,29 @@ void main (void)
       }
 
    printBoard(board, MAX_NODE);
-   for (int i=1; i < 10; i++){
-      //selecting a piece
+   
+   while (1) {
       char input[5];
-
-      printf("Select a piece on the board. Then select where to move it. (Use Position: A1, B3, etc..):\n");
+      
+      printf("\n--- %s's Turn ---\n", currentTurn == 'W' ? "White" : "Black");
+      printf("Select a piece and move it (e.g., G2G4): ");
       scanf(" %4s", input); 
+      
       char rowInput = input[0];
       char colInput = input[1];
       char torowInput = input[2];
       char tocolInput = input[3];
-      movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE);
       
+      bool moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
+      
+      if (moveSuccess) {
+          // Switch turns only if move was successful
+          currentTurn = (currentTurn == 'W') ? 'B' : 'W';
+      }
       
       printBoard(board, MAX_NODE);
    }
-  
-
-
-
 
     free(board);
-    return;
- }
-
- "test"
+    return 0;
+}
