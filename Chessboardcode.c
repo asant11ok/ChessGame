@@ -360,5 +360,8 @@ int main (void)
    }
 
     free(board);
+    //wait for user input before exit updated
+    while (getchar() != '\n'); // clear input buffer
+    getchar(); // wait for Enter
     return 0;
 }
