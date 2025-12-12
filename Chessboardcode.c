@@ -1,13 +1,41 @@
 #include<stdio.h>
 #include <stdbool.h>
 #include <stdlib.h> // Required for malloc and free
-#include <time.h>    // For random number generation
+#include <string.h> //for unicode version printboard function uses strcpy - tyler
+#include <time.h> //for AI random move - tyler
 
 typedef struct{
    char pieceType;
    char color;
    bool isonboard;
 }cell;
+
+char whiteCaptured[32] = ""; //added array to store captured white/black pieces
+char blackCaptured[32] = "";
+
+//checks if a King is captured and ends game
+bool checkWin(cell* board, int MAX_NODE) {
+    bool whiteKing = false;
+    bool blackKing = false;
+    for (int i = 0; i < MAX_NODE; i++) {
+        for (int j = 1; j < MAX_NODE; j++) {
+            cell c = board[i * MAX_NODE + j];
+            if (c.pieceType == 'K' && c.color == 'W') whiteKing = true;
+            if (c.pieceType == 'K' && c.color == 'B') blackKing = true;
+        }
+    }
+    if (!whiteKing) {
+        system("cls"); //clear console
+        printf("WINNER WINNER CHICKEN DINNER! Black wins!\n");
+        return true;
+    }
+    if (!blackKing) {
+        system("cls");
+        printf("WINNER WINNER CHICKEN DINNER! White wins!\n");
+        return true;
+    }
+    return false;
+}
 
 // Helper to check if path is clear between from and to (excluding endpoints)
 bool isPathClear(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow, int tocol) {
@@ -48,16 +76,14 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
 
     switch (piece) {
       case 'N': {
-          // Knight moves same as before
           if ((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2)) {
               return true;
           }
           return false;
       }
       case 'P': {
-          // Pawn logic (unchanged)
           int direction = (fromCell.color == 'W') ? -1 : 1;
-          int startRow = (fromCell.color == 'W') ? 7 : 2;
+          int startRow = (fromCell.color == 'W') ? 6 : 1;
           int rowDiff = torow - fromrow;
           int colDiff = tocol - fromcol;
 
@@ -77,7 +103,6 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
           return false;
       }
       case 'R': {
-          // Rook moves horizontally or vertically
           if (fromrow == torow || fromcol == tocol) {
               if (isPathClear(board, MAX_NODE, fromrow, fromcol, torow, tocol)) {
                   return true;
@@ -86,7 +111,6 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
           return false;
       }
       case 'B': {
-          // Bishop moves diagonally
           if (rowDiff == colDiff) {
               if (isPathClear(board, MAX_NODE, fromrow, fromcol, torow, tocol)) {
                   return true;
@@ -95,7 +119,6 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
           return false;
       }
       case 'Q': {
-          // Queen moves like rook or bishop
           if (fromrow == torow || fromcol == tocol || rowDiff == colDiff) {
               if (isPathClear(board, MAX_NODE, fromrow, fromcol, torow, tocol)) {
                   return true;
@@ -104,7 +127,6 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
           return false;
       }
       case 'K': {
-          // King moves one square any direction
           if ((rowDiff <= 1) && (colDiff <= 1)) {
               return true;
           }
@@ -115,16 +137,14 @@ bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
     }
 }
 
-
 void selectpiece(cell* board, char rowLetter, char colDigit, int MAX_NODE) {
-    // Convert row letter (e.g., 'A') to index (1-8)
     if (rowLetter < 'A' || rowLetter > 'H' || colDigit < '1' || colDigit > '8') {
         printf("Invalid input: Use rows A-H and columns 1-8.\n");
         return;
     }
 
-    int row = rowLetter - 'A' + 1;  // Row 1 to 8
-    int col = colDigit - '0';      // Col 1 to 8
+    int col = rowLetter - 'A' + 1; // Col index 1-8 - updated
+    int row = 8 - (colDigit - '0'); // Row index 0-7 (top-left is 0,0) - updated
 
     int index = row * MAX_NODE + col;
     cell c = board[index];
@@ -140,47 +160,72 @@ void selectpiece(cell* board, char rowLetter, char colDigit, int MAX_NODE) {
 }
 
 void printBoard(cell* board, int MAX_NODE){
-   for (int i = 0; i < MAX_NODE; i++) {
-         for (int j = 0; j < MAX_NODE; j++) {
-               cell c = board[i * MAX_NODE + j];
+   printf("      A   B   C   D   E   F   G   H\n");
+    printf("    +---+---+---+---+---+---+---+---+\n");
 
-               if (c.pieceType == '\0') {
-                  printf(" -- ");
-               } else {
-                  printf(" %c%c ", c.color, c.pieceType);
-               }
-         }
-         printf("\n");
-   }
+    for (int i = 0; i < 8; i++) {
+        printf("  %d |", 8 - i);
+
+        for (int j = 1; j <= 8; j++) {
+            int index = i * MAX_NODE + j;
+
+            char symbol[4] = " ";  
+
+            if (board[index].pieceType != '\0') {
+                char p = board[index].pieceType;
+                char c = board[index].color;
+
+                const char* whitePieces[] = { "♙", "♖", "♘", "♗", "♕", "♔" };
+                const char* blackPieces[] = { "♟", "♜", "♞", "♝", "♛", "♚" };
+
+                switch (p) {
+                    case 'P': strcpy(symbol, c == 'W' ? whitePieces[0] : blackPieces[0]); break;
+                    case 'R': strcpy(symbol, c == 'W' ? whitePieces[1] : blackPieces[1]); break;
+                    case 'N': strcpy(symbol, c == 'W' ? whitePieces[2] : blackPieces[2]); break;
+                    case 'B': strcpy(symbol, c == 'W' ? whitePieces[3] : blackPieces[3]); break;
+                    case 'Q': strcpy(symbol, c == 'W' ? whitePieces[4] : blackPieces[4]); break;
+                    case 'K': strcpy(symbol, c == 'W' ? whitePieces[5] : blackPieces[5]); break;
+                    default: strcpy(symbol, " ");
+                }
+            }
+
+            printf(" %s |", symbol);
+        }
+
+        printf(" %d\n", 8 - i);
+        printf("    +---+---+---+---+---+---+---+---+\n");
+    }
+
+    printf("      A   B   C   D   E   F   G   H\n");
+    //added captured pieces display at bottom
+    printf("\nWhite Captured: %s\n", whiteCaptured);
+    printf("Black Captured: %s\n", blackCaptured);
 }
-void movepiecehelper(cell* board, int fromIndex, int toIndex, char rowLetter, char colDigit, int MAX_NODE) { //actually moves the piece
-    board[toIndex] = board[fromIndex];
-    board[fromIndex].pieceType = '\0';
-    board[fromIndex].color = '\0';
 
-   printf("Moved piece to %c%c: %c%c\n", rowLetter, colDigit, board[toIndex].color, board[toIndex].pieceType);
-
-}
-
-bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE) {
-
+bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE, char currentTurn) {
    if (fromRow < 'A' || fromRow > 'H' || fromCol < '1' || fromCol > '8' ||
       rowLetter < 'A' || rowLetter > 'H' || colDigit < '1' || colDigit > '8') {
       printf("Invalid input: Use rows A-H and columns 1-8.\n");
       return false;
    }
-   int trow = rowLetter - 'A' + 1;  // Row 1 to 8
-   int tcol = colDigit - '0';      // Col 1 to 8
 
-   int row = fromRow - 'A' + 1;  // Row 1 to 8
-   int col = fromCol - '0';      // Col 1 to 8
+   int tcol = rowLetter - 'A' + 1; // Col index 1-8
+   int trow = 8 - (colDigit - '0'); // Row index 0-7
+   int col = fromRow - 'A' + 1; // Col index 1-8
+   int row = 8 - (fromCol - '0'); // Row index 0-7
 
    int toIndex = trow * MAX_NODE + tcol;
    int fromIndex = row * MAX_NODE + col;
    
-   //check if there is a piece to move to
    if (board[fromIndex].pieceType == '\0') {
       printf("No piece at the selected position %c%c to move.\n", fromRow, fromCol);
+      return false;
+   }
+
+   if (board[fromIndex].color != currentTurn) {
+      printf("It's %s's turn! You can't move %s pieces.\n", 
+             currentTurn == 'W' ? "White" : "Black",
+             currentTurn == 'W' ? "Black" : "White");
       return false;
    }
 
@@ -190,212 +235,145 @@ bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char col
              fromRow, fromCol, rowLetter, colDigit);
       return false;
    }
-   movepiecehelper(board, fromIndex, toIndex, rowLetter, colDigit, MAX_NODE);
-   return true;
+
+   //added captured piece tracking
+   if (board[toIndex].pieceType != '\0') {
+       char captured = board[toIndex].pieceType;
+       if (board[toIndex].color == 'W') {
+           strncat(whiteCaptured, &captured, 1);
+       } else {
+           strncat(blackCaptured, &captured, 1);
+       }
+   }
+
+   board[toIndex] = board[fromIndex];
+   board[fromIndex].pieceType = '\0';
+   board[fromIndex].color = '\0';
 
    printf("Moved piece to %c%c: %c%c\n", rowLetter, colDigit, board[toIndex].color, board[toIndex].pieceType);
    return true;
 }
 
-// AI makes a random valid move for the given color
-bool makeAIMove(cell* board, int MAX_NODE, char color) {
-    printf("\n%s (AI) is thinking...\n", color == 'B' ? "Black" : "White");
-    
-    // Collect all pieces of this color
-    int pieceCount = 0;
-    int pieceRows[64];  // Max possible pieces
-    int pieceCols[64];
-    
-    for (int r = 1; r < MAX_NODE; r++) {
-        for (int c = 1; c < MAX_NODE; c++) {
-            int idx = r * MAX_NODE + c;
-            if (board[idx].pieceType != '\0' && board[idx].color == color) {
-                pieceRows[pieceCount] = r;
-                pieceCols[pieceCount] = c;
-                pieceCount++;
+//added function for Black random move
+void blackAI(cell* board, int MAX_NODE) {
+    int fromRow, fromCol, toRow, toCol;
+    bool moved = false;
+
+    while (!moved) {
+        fromRow = rand() % 8; 
+        fromCol = 1 + rand() % 8; 
+        if (board[fromRow * MAX_NODE + fromCol].pieceType != '\0' && board[fromRow * MAX_NODE + fromCol].color == 'B') {
+            toRow = rand() % 8;
+            toCol = 1 + rand() % 8;
+            if (isvalidmove(board, MAX_NODE, fromRow, fromCol, toRow, toCol)) {
+                char fR = 'A' + (fromCol - 1);
+                char fC = '8' - fromRow;
+                char tR = 'A' + (toCol - 1);
+                char tC = '8' - toRow;
+                movepiece(board, fR, fC, tR, tC, MAX_NODE, 'B');
+                moved = true;
             }
         }
     }
-    
-    if (pieceCount == 0) {
-        printf("AI has no pieces left!\n");
-        return false;
-    }
-    
-    printf("AI has %d pieces remaining.\n", pieceCount);
-    
-    // Try random pieces until we find a valid move
-    for (int i = 0; i < pieceCount * 10; i++) {  // Try multiple times
-        // Pick a random piece
-        int pieceIdx = rand() % pieceCount;
-        int fromR = pieceRows[pieceIdx];
-        int fromC = pieceCols[pieceIdx];
-        
-        // Try random destination squares
-        for (int attempt = 0; attempt < 64; attempt++) {
-            int toR = (rand() % 8) + 1;  // Random row 1-8
-            int toC = (rand() % 8) + 1;  // Random col 1-8
-            
-            // Check if this is a valid move
-            if (isvalidmove(board, MAX_NODE, fromR, fromC, toR, toC)) {
-                // Check if destination is not our own piece
-                int toIdx = toR * MAX_NODE + toC;
-                if (board[toIdx].pieceType == '\0' || board[toIdx].color != color) {
-                    // Make the move
-                    int fromIdx = fromR * MAX_NODE + fromC;
-                    char fromRowChar = 'A' + fromR - 1;
-                    char fromColChar = '0' + fromC;
-                    char toRowChar = 'A' + toR - 1;
-                    char toColChar = '0' + toC;
-                    
-                    printf("AI moves: %c%c to %c%c (%c%c)\n", 
-                           fromRowChar, fromColChar, toRowChar, toColChar,
-                           board[fromIdx].color, board[fromIdx].pieceType);
-                    
-                    // Execute the move
-                    board[toIdx] = board[fromIdx];
-                    board[fromIdx].pieceType = '\0';
-                    board[fromIdx].color = '\0';
-                    
-                    return true;
-                }
-            }
-        }
-    }
-    
-    printf("AI couldn't find a valid move!\n");
-    return false;
 }
 
 int main (void)
 {
+    #ifdef _WIN32
+    system("chcp 65001"); //use UTF-8
+#endif
+
+    srand(time(NULL)); //initialize random seed for AI
+
     int MAX_NODE = 9;
     cell* board = malloc(MAX_NODE * MAX_NODE * sizeof(cell));
     char currentTurn = 'W'; // White goes first
-    srand(time(NULL)); // Seed random number generator for AI
     
-    //set board
-    for (int i = 0; i < MAX_NODE; i++)
-    {
-      for (int j = 0; j < MAX_NODE; j++){
-         int index = i * MAX_NODE + j;
-         if (i == 0 && j > 0){
-            board[index].pieceType = '0' + j;
-            board[index].color = ' '; 
-         }else if (j == 0 && i > 0){
-            board[index].pieceType = 'A' + i - 1;
-            board[index].color = ' '; 
-         }else{
-            board[index].pieceType = '\0';
-            board[index].color = '\0';
-         }
-      }
+    for (int i = 0; i < MAX_NODE; i++){
+    for (int j = 0; j < MAX_NODE; j++){
+        int index = i * MAX_NODE + j;
+        board[index].pieceType = '\0';
+        board[index].color = '\0';
     }
+}
 
    //set pieces on board
-   //black pieces
-    int x = 1;
-      //rook
+   int x = 0; // black back rank
+   board[x * MAX_NODE + 1].pieceType = 'R'; board[x * MAX_NODE + 1].color = 'B'; 
+   board[x * MAX_NODE + 2].pieceType = 'N'; board[x * MAX_NODE + 2].color = 'B'; 
+   board[x * MAX_NODE + 3].pieceType = 'B'; board[x * MAX_NODE + 3].color = 'B'; 
+   board[x * MAX_NODE + 4].pieceType = 'Q'; board[x * MAX_NODE + 4].color = 'B'; 
+   board[x * MAX_NODE + 5].pieceType = 'K'; board[x * MAX_NODE + 5].color = 'B'; 
+   board[x * MAX_NODE + 6].pieceType = 'B'; board[x * MAX_NODE + 6].color = 'B';
+   board[x * MAX_NODE + 7].pieceType = 'N'; board[x * MAX_NODE + 7].color = 'B';  
+   board[x * MAX_NODE + 8].pieceType = 'R'; board[x * MAX_NODE + 8].color = 'B'; 
       
-      board[x * MAX_NODE + 1].pieceType = 'R';
-      board[x * MAX_NODE + 1].color = 'B'; 
-      //knight
-      board[x * MAX_NODE + 2].pieceType = 'N';
-      board[x * MAX_NODE + 2].color = 'B'; 
-      //bishop
-      board[x * MAX_NODE + 3].pieceType = 'B';
-      board[x * MAX_NODE + 3].color = 'B'; 
-      //queen
-      board[x * MAX_NODE + 4].pieceType = 'Q';
-      board[x * MAX_NODE + 4].color = 'B'; 
-      //king
-      board[x * MAX_NODE + 5].pieceType = 'K';
-      board[x * MAX_NODE + 5].color = 'B'; 
-      //bishop
-      board[x * MAX_NODE + 6].pieceType = 'B';
-      board[x * MAX_NODE + 6].color = 'B';
-      //knight
-      board[x * MAX_NODE + 7].pieceType = 'N';
-      board[x * MAX_NODE + 7].color = 'B';  
-      //rook
-      board[x * MAX_NODE + 8].pieceType = 'R';
-      board[x * MAX_NODE + 8].color = 'B'; 
-      
-      //pawns
-      x = 2;
-      for (int i = 1; i < MAX_NODE; i++){
+   x = 1; // black pawns
+   for (int i = 1; i < MAX_NODE; i++){
          board[x * MAX_NODE + i].pieceType = 'P';
          board[x * MAX_NODE + i].color = 'B'; 
-      }
+   }
 
-   //white pieces
-     x = 8;
-      
-      //rook
-      board[x * MAX_NODE + 1].pieceType = 'R';
-      board[x * MAX_NODE + 1].color = 'W'; 
-      //knight
-      board[x * MAX_NODE + 2].pieceType = 'N';
-      board[x * MAX_NODE + 2].color = 'W'; 
-      //bishop
-      board[x * MAX_NODE + 3].pieceType = 'B';
-      board[x * MAX_NODE + 3].color = 'W'; 
-      //queen
-      board[x * MAX_NODE + 4].pieceType = 'Q';
-      board[x * MAX_NODE + 4].color = 'W'; 
-      //king
-      board[x * MAX_NODE + 5].pieceType = 'K';
-      board[x * MAX_NODE + 5].color = 'W'; 
-      //bishop
-      board[x * MAX_NODE + 6].pieceType = 'B';
-      board[x * MAX_NODE + 6].color = 'W';
-      //knight
-      board[x * MAX_NODE + 7].pieceType = 'N';
-      board[x * MAX_NODE + 7].color = 'W';  
-      //rook
-      board[x * MAX_NODE + 8].pieceType = 'R';
-      board[x * MAX_NODE + 8].color = 'W'; 
-      
-      //pawns
-      x = 7;
-      for (int i = 1; i < MAX_NODE; i++){
+   x = 6; // white pawns
+   for (int i = 1; i < MAX_NODE; i++){
          board[x * MAX_NODE + i].pieceType = 'P';
          board[x * MAX_NODE + i].color = 'W'; 
-      }
+   }
+
+   x = 7; // white back rank
+   board[x * MAX_NODE + 1].pieceType = 'R'; board[x * MAX_NODE + 1].color = 'W'; 
+   board[x * MAX_NODE + 2].pieceType = 'N'; board[x * MAX_NODE + 2].color = 'W'; 
+   board[x * MAX_NODE + 3].pieceType = 'B'; board[x * MAX_NODE + 3].color = 'W'; 
+   board[x * MAX_NODE + 4].pieceType = 'Q'; board[x * MAX_NODE + 4].color = 'W'; 
+   board[x * MAX_NODE + 5].pieceType = 'K'; board[x * MAX_NODE + 5].color = 'W'; 
+   board[x * MAX_NODE + 6].pieceType = 'B'; board[x * MAX_NODE + 6].color = 'W';
+   board[x * MAX_NODE + 7].pieceType = 'N'; board[x * MAX_NODE + 7].color = 'W';  
+   board[x * MAX_NODE + 8].pieceType = 'R'; board[x * MAX_NODE + 8].color = 'W'; 
 
    printBoard(board, MAX_NODE);
-   for (int i=1; i < 15; i++){
+   printf("\nTo exit game, type 'exit' \n");
+   
+   while (1) {
+      if (checkWin(board, MAX_NODE)) break; //added win check each turn
 
-    if (whiteturn == true){
-        printf("White's Turn\n");
-    }else{
-        printf("Black's Turn\n");
-    }
+      if (currentTurn == 'W') {
+          char input[5];
+          char exitword[] = "exit";
+      
+          printf("\n--- White's Turn ---\n");
+          printf("Select a piece and move it (e.g., G2G4): ");
+          scanf(" %4s", input); 
+      
+          char rowInput = input[0];
+          char colInput = input[1];
+          char torowInput = input[2];
+          char tocolInput = input[3];
 
-      //selecting a piece
-      char input[5];
-      char rowInput;
-      char colInput;
-      char torowInput;
-      char tocolInput;
-
-     //loop until current player has made a viable move
-     
-      while (viablemove == false){
-        printf("Select a piece on the board. Then select where to move it. (Use Position: A1, B3, etc..):\n");
-        scanf(" %4s", input); 
-        rowInput = input[0];
-        colInput = input[1];
-        torowInput = input[2];
-        tocolInput = input[3];
-        viablemove = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE);
+          if(strcmp(input, exitword) == 0){
+            printf("\nEnding Game Early..\n");
+            
+            break;
+          }
+      
+          bool moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
+      
+          if (moveSuccess) {
+              currentTurn = 'B'; //switch to AI
+          }
+      } else {
+          printf("\n--- Black's Turn (AI) ---\n");
+          blackAI(board, MAX_NODE); //AI makes a random valid move
+          currentTurn = 'W'; //switch back to player
       }
-      viablemove = false;
-      toggle_state(&whiteturn);
       
       printBoard(board, MAX_NODE);
    }
 
     free(board);
-   return 0;
+    //wait for user input before exit updated
+    printf("\nGame Over!\n");
+    printf("Press any key to close the program\n");
+    while (getchar() != '\n'); // clear input buffer
+    getchar(); // wait for Enter
+    return 0;
 }
