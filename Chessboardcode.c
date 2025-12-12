@@ -28,6 +28,8 @@ bool isPathClear(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow,
     return true;
 }
 
+
+
 bool isvalidmove(cell* board, int MAX_NODE, int fromrow, int fromcol, int torow, int tocol) {
     int fromIndex = fromrow * MAX_NODE + fromcol;
     int toIndex = torow * MAX_NODE + tocol;
@@ -151,8 +153,17 @@ void printBoard(cell* board, int MAX_NODE){
          printf("\n");
    }
 }
+void movepiecehelper(cell* board, int fromIndex, int toIndex, char rowLetter, char colDigit, int MAX_NODE) { //actually moves the piece
+    board[toIndex] = board[fromIndex];
+    board[fromIndex].pieceType = '\0';
+    board[fromIndex].color = '\0';
 
-bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE, char currentTurn) {
+   printf("Moved piece to %c%c: %c%c\n", rowLetter, colDigit, board[toIndex].color, board[toIndex].pieceType);
+
+}
+
+bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char colDigit, int MAX_NODE) {
+
    if (fromRow < 'A' || fromRow > 'H' || fromCol < '1' || fromCol > '8' ||
       rowLetter < 'A' || rowLetter > 'H' || colDigit < '1' || colDigit > '8') {
       printf("Invalid input: Use rows A-H and columns 1-8.\n");
@@ -173,24 +184,14 @@ bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char col
       return false;
    }
 
-   // Check if it's the right player's turn
-   if (board[fromIndex].color != currentTurn) {
-      printf("It's %s's turn! You can't move %s pieces.\n", 
-             currentTurn == 'W' ? "White" : "Black",
-             currentTurn == 'W' ? "Black" : "White");
-      return false;
-   }
-
    if (!isvalidmove(board, MAX_NODE, row, col, trow, tcol)) {
       printf("Invalid move for piece %c%c from %c%c to %c%c.\n",
              board[fromIndex].color, board[fromIndex].pieceType, 
              fromRow, fromCol, rowLetter, colDigit);
       return false;
    }
-   
-   board[toIndex] = board[fromIndex];
-   board[fromIndex].pieceType = '\0';
-   board[fromIndex].color = '\0';
+   movepiecehelper(board, fromIndex, toIndex, rowLetter, colDigit, MAX_NODE);
+   return true;
 
    printf("Moved piece to %c%c: %c%c\n", rowLetter, colDigit, board[toIndex].color, board[toIndex].pieceType);
    return true;
@@ -363,33 +364,34 @@ int main (void)
       }
 
    printBoard(board, MAX_NODE);
-   
-   while (1) {
+   for (int i=1; i < 15; i++){
+
+    if (whiteturn == true){
+        printf("White's Turn\n");
+    }else{
+        printf("Black's Turn\n");
+    }
+
+      //selecting a piece
       char input[5];
-      bool moveSuccess = false;
-      
-      printf("\n--- %s's Turn ---\n", currentTurn == 'W' ? "White" : "Black");
-      
-      if (currentTurn == 'W') {
-          // HUMAN PLAYER (White)
-          printf("Select a piece and move it (e.g., G2G4): ");
-          scanf(" %4s", input); 
-          
-          char rowInput = input[0];
-          char colInput = input[1];
-          char torowInput = input[2];
-          char tocolInput = input[3];
-          
-          moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
-      } else {
-          // AI PLAYER (Black)
-          moveSuccess = makeAIMove(board, MAX_NODE, currentTurn);
+      char rowInput;
+      char colInput;
+      char torowInput;
+      char tocolInput;
+
+     //loop until current player has made a viable move
+     
+      while (viablemove == false){
+        printf("Select a piece on the board. Then select where to move it. (Use Position: A1, B3, etc..):\n");
+        scanf(" %4s", input); 
+        rowInput = input[0];
+        colInput = input[1];
+        torowInput = input[2];
+        tocolInput = input[3];
+        viablemove = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE);
       }
-      
-      if (moveSuccess) {
-          // Switch turns only if move was successful
-          currentTurn = (currentTurn == 'W') ? 'B' : 'W';
-      }
+      viablemove = false;
+      toggle_state(&whiteturn);
       
       printBoard(board, MAX_NODE);
    }
