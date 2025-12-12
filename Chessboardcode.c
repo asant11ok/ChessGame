@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include <stdbool.h>
 #include <stdlib.h> // Required for malloc and free
+#include <time.h>    // For random number generation
 
 typedef struct{
    char pieceType;
@@ -195,11 +196,82 @@ bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char col
    return true;
 }
 
+// AI makes a random valid move for the given color
+bool makeAIMove(cell* board, int MAX_NODE, char color) {
+    printf("\n%s (AI) is thinking...\n", color == 'B' ? "Black" : "White");
+    
+    // Collect all pieces of this color
+    int pieceCount = 0;
+    int pieceRows[64];  // Max possible pieces
+    int pieceCols[64];
+    
+    for (int r = 1; r < MAX_NODE; r++) {
+        for (int c = 1; c < MAX_NODE; c++) {
+            int idx = r * MAX_NODE + c;
+            if (board[idx].pieceType != '\0' && board[idx].color == color) {
+                pieceRows[pieceCount] = r;
+                pieceCols[pieceCount] = c;
+                pieceCount++;
+            }
+        }
+    }
+    
+    if (pieceCount == 0) {
+        printf("AI has no pieces left!\n");
+        return false;
+    }
+    
+    printf("AI has %d pieces remaining.\n", pieceCount);
+    
+    // Try random pieces until we find a valid move
+    for (int i = 0; i < pieceCount * 10; i++) {  // Try multiple times
+        // Pick a random piece
+        int pieceIdx = rand() % pieceCount;
+        int fromR = pieceRows[pieceIdx];
+        int fromC = pieceCols[pieceIdx];
+        
+        // Try random destination squares
+        for (int attempt = 0; attempt < 64; attempt++) {
+            int toR = (rand() % 8) + 1;  // Random row 1-8
+            int toC = (rand() % 8) + 1;  // Random col 1-8
+            
+            // Check if this is a valid move
+            if (isvalidmove(board, MAX_NODE, fromR, fromC, toR, toC)) {
+                // Check if destination is not our own piece
+                int toIdx = toR * MAX_NODE + toC;
+                if (board[toIdx].pieceType == '\0' || board[toIdx].color != color) {
+                    // Make the move
+                    int fromIdx = fromR * MAX_NODE + fromC;
+                    char fromRowChar = 'A' + fromR - 1;
+                    char fromColChar = '0' + fromC;
+                    char toRowChar = 'A' + toR - 1;
+                    char toColChar = '0' + toC;
+                    
+                    printf("AI moves: %c%c to %c%c (%c%c)\n", 
+                           fromRowChar, fromColChar, toRowChar, toColChar,
+                           board[fromIdx].color, board[fromIdx].pieceType);
+                    
+                    // Execute the move
+                    board[toIdx] = board[fromIdx];
+                    board[fromIdx].pieceType = '\0';
+                    board[fromIdx].color = '\0';
+                    
+                    return true;
+                }
+            }
+        }
+    }
+    
+    printf("AI couldn't find a valid move!\n");
+    return false;
+}
+
 int main (void)
 {
     int MAX_NODE = 9;
     cell* board = malloc(MAX_NODE * MAX_NODE * sizeof(cell));
     char currentTurn = 'W'; // White goes first
+    srand(time(NULL)); // Seed random number generator for AI
     
     //set board
     for (int i = 0; i < MAX_NODE; i++)
@@ -294,17 +366,25 @@ int main (void)
    
    while (1) {
       char input[5];
+      bool moveSuccess = false;
       
       printf("\n--- %s's Turn ---\n", currentTurn == 'W' ? "White" : "Black");
-      printf("Select a piece and move it (e.g., G2G4): ");
-      scanf(" %4s", input); 
       
-      char rowInput = input[0];
-      char colInput = input[1];
-      char torowInput = input[2];
-      char tocolInput = input[3];
-      
-      bool moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
+      if (currentTurn == 'W') {
+          // HUMAN PLAYER (White)
+          printf("Select a piece and move it (e.g., G2G4): ");
+          scanf(" %4s", input); 
+          
+          char rowInput = input[0];
+          char colInput = input[1];
+          char torowInput = input[2];
+          char tocolInput = input[3];
+          
+          moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
+      } else {
+          // AI PLAYER (Black)
+          moveSuccess = makeAIMove(board, MAX_NODE, currentTurn);
+      }
       
       if (moveSuccess) {
           // Switch turns only if move was successful
@@ -315,5 +395,5 @@ int main (void)
    }
 
     free(board);
-    return 0;
+   return 0;
 }
