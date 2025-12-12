@@ -329,12 +329,14 @@ int main (void)
    board[x * MAX_NODE + 8].pieceType = 'R'; board[x * MAX_NODE + 8].color = 'W'; 
 
    printBoard(board, MAX_NODE);
+   printf("\nTo exit game, type 'exit' \n");
    
    while (1) {
       if (checkWin(board, MAX_NODE)) break; //added win check each turn
 
       if (currentTurn == 'W') {
           char input[5];
+          char exitword[] = "exit";
       
           printf("\n--- White's Turn ---\n");
           printf("Select a piece and move it (e.g., G2G4): ");
@@ -344,6 +346,12 @@ int main (void)
           char colInput = input[1];
           char torowInput = input[2];
           char tocolInput = input[3];
+
+          if(strcmp(input, exitword) == 0){
+            printf("\nEnding Game Early..\n");
+            
+            break;
+          }
       
           bool moveSuccess = movepiece(board, rowInput, colInput, torowInput, tocolInput, MAX_NODE, currentTurn);
       
@@ -361,6 +369,8 @@ int main (void)
 
     free(board);
     //wait for user input before exit updated
+    printf("\nGame Over!\n");
+    printf("Press any key to close the program\n");
     while (getchar() != '\n'); // clear input buffer
     getchar(); // wait for Enter
     return 0;
