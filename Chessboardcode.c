@@ -254,15 +254,44 @@ bool movepiece(cell* board, char fromRow, char fromCol, char rowLetter, char col
    return true;
 }
 
-//added function for Black random move
+//added function for Black random move with capture priority
 void blackAI(cell* board, int MAX_NODE) {
     int fromRow, fromCol, toRow, toCol;
     bool moved = false;
-
+    
+    // First pass: Look for any capture opportunities
+    for (int fRow = 0; fRow < 8 && !moved; fRow++) {
+        for (int fCol = 1; fCol < MAX_NODE && !moved; fCol++) {
+            if (board[fRow * MAX_NODE + fCol].pieceType != '\0' && 
+                board[fRow * MAX_NODE + fCol].color == 'B') {
+                // Check all possible destination squares for this piece
+                for (int tRow = 0; tRow < 8 && !moved; tRow++) {
+                    for (int tCol = 1; tCol < MAX_NODE && !moved; tCol++) {
+                        // Check if destination has a white piece (capture opportunity)
+                        if (board[tRow * MAX_NODE + tCol].pieceType != '\0' &&
+                            board[tRow * MAX_NODE + tCol].color == 'W' &&
+                            isvalidmove(board, MAX_NODE, fRow, fCol, tRow, tCol)) {
+                            // Found a valid capture move!
+                            char fR = 'A' + (fCol - 1);
+                            char fC = '8' - fRow;
+                            char tR = 'A' + (tCol - 1);
+                            char tC = '8' - tRow;
+                            printf("AI captures at %c%c!\n", tR, tC);
+                            movepiece(board, fR, fC, tR, tC, MAX_NODE, 'B');
+                            moved = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Second pass: If no captures found, make a random valid move
     while (!moved) {
         fromRow = rand() % 8; 
         fromCol = 1 + rand() % 8; 
-        if (board[fromRow * MAX_NODE + fromCol].pieceType != '\0' && board[fromRow * MAX_NODE + fromCol].color == 'B') {
+        if (board[fromRow * MAX_NODE + fromCol].pieceType != '\0' && 
+            board[fromRow * MAX_NODE + fromCol].color == 'B') {
             toRow = rand() % 8;
             toCol = 1 + rand() % 8;
             if (isvalidmove(board, MAX_NODE, fromRow, fromCol, toRow, toCol)) {
